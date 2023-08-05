@@ -1,0 +1,37 @@
+#Code in Python 
+import datetime as dt
+from dateutils import month_start, relativedelta
+import matplotlib.pyplot as plt
+import numpy_financial as npf
+import pandas as pd
+
+def month_start(date):
+    return date.replace(day=1)
+class Loan:
+    def __init__(self, rate, term, loan_amount, start = dt.date.today().isoformat()):
+        self.rate = rate / 1200
+        self.periods = term * 12
+        self.loan_amount = loan_amount
+        self.start = month_start(dt.date.fromisoformat(start)) + relativedelta(months=1)
+        self.pmt = npf.pmt(self.rate, self.periods, -self.loan_amount)
+        self.pmt_str = f"${self.pmt:,.2f}"
+        self.table = self.loan_table()
+
+    def loan_table(self):
+        periods = [self.start + relativedelta(months=x) for x in range(self.periods)]
+        interest = [npf.ipmt(self.rate, month, self.periods, -self.loan_amount)
+                    for month in range(1, self.periods + 1)]
+        principal = [npf.ppmt(self.rate, month, self.periods, -self.loan_amount)
+                     for month in range(1, self.periods + 1)]
+        table = pd.DataFrame({"Payment": self.pmt, "Interest": interest, "Principal": principal},
+                             index=pd.to_datetime(periods))
+        table["Balance"] = self.loan_amount - table["Principal"].cumsum()
+        return table.round(2)
+x = int(input("What is the interest rate on your loan: "))
+y = int(input("What is the loan term: "))
+z = int(input("What is the principal of the loan"))
+loan = Loan(x, y, z)
+g = print(f" Your monthly mortgage is {loan.pmt:.2f}")
+y = (loan.pmt * 12)
+print(f"Yearly loan amount is {y:.2f}")
+print(loan.table)
